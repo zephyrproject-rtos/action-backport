@@ -65,10 +65,12 @@ const getCommitsToBackport = async ({
   repo: string;
 }): Promise<string[]>  => {
 
-  const commits = [];
+  var commits: string[];
+  commits = [];
+
   try {
  
-    const myError = '';
+    let myError = '';
     const ls = {
       stdout: (data: Buffer) => {
         commits.push(data.toString());
