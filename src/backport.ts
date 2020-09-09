@@ -64,10 +64,6 @@ const getCommitsToBackport = async ({
   mergeCommitSha: string;
   repo: string;
 }): string[]  => {
-  const git = async (...args: string[]) => {
-
-    await exec("git", args, { cwd: repo });
-  };
 
   try {
     let myOutput = '';
@@ -84,8 +80,7 @@ const getCommitsToBackport = async ({
       }
     };
 
-    const commits = exec("git", "rev-list", baseCommitSha + ".." +
-			 mergeCommitSha, options);
+    exec("git", "rev-list", baseCommitSha + ".." + mergeCommitSha, options);
   } catch (error) {
     throw error;
   }
