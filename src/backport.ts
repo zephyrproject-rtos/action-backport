@@ -55,7 +55,7 @@ const getBackportBaseToHead = ({
   return baseToHead;
 };
 
-const getCommitsToBackport = ({
+const getCommitsToBackport = async ({
   baseCommitSha,
   mergeCommitSha,
   repo,
@@ -65,11 +65,27 @@ const getCommitsToBackport = ({
   repo: string;
 }): string[]  => {
   const git = async (...args: string[]) => {
+
     await exec("git", args, { cwd: repo });
   };
 
   try {
-    const commits = await git("rev-list", baseCommitSha + ".." + mergeCommitSha);
+    let myOutput = '';
+    let myError = '';
+ 
+    const options = {};
+    options.cwd = repo
+    options.listeners = {
+      stdout: (data: Buffer) => {
+        myOutput += data.toString();
+      },
+      stderr: (data: Buffer) => {
+        myError += data.toString();
+      }
+    };
+
+    const commits = exec("git", "rev-list", baseCommitSha + ".." +
+			 mergeCommitSha, options);
   } catch (error) {
     throw error;
   }
@@ -247,7 +263,7 @@ const backport = async ({
   await warnIfSquashIsNotTheOnlyAllowedMergeMethod({ github, owner, repo });
 
   // The merge commit SHA is actually not null.
-  const commitsToBackport = getCommitsToBackport({baseCommitSha, mergeCommitSha, repo}) //String(mergeCommitSha);
+  const commitsToBackport = await getCommitsToBackport({baseCommitSha, mergeCommitSha, repo}) //String(mergeCommitSha);
   info(`Backporting ${commitsToBackport} from #${pullRequestNumber}`);
 
   await exec("git", [
