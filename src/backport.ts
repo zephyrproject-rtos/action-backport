@@ -312,7 +312,7 @@ const backport = async ({
         await github.issues.createComment({
           body: getFailedBackportCommentBody({
             base,
-            commitsToBackport,
+            commitsToBackport[0],
             errorMessage,
             head,
           }),
