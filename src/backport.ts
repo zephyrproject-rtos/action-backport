@@ -63,23 +63,21 @@ const getCommitsToBackport = async ({
   baseCommitSha: string;
   mergeCommitSha: string;
   repo: string;
-}): string[]  => {
+}): Promise<string[]>  => {
 
   try {
-    let myOutput = '';
-    let myError = '';
+    const commits = [];
  
-    const options = {};
-    options.cwd = repo
-    options.listeners = {
+    const ls = {
       stdout: (data: Buffer) => {
-        myOutput += data.toString();
+        commits.push(data.toString());
       },
       stderr: (data: Buffer) => {
         myError += data.toString();
       }
     };
 
+    const options = {cwd: repo, listeners: ls};
     exec("git", "rev-list", baseCommitSha + ".." + mergeCommitSha, options);
   } catch (error) {
     throw error;
