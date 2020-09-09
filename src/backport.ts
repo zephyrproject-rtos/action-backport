@@ -55,6 +55,26 @@ const getBackportBaseToHead = ({
   return baseToHead;
 };
 
+const getCommitsToBackport = ({
+  baseCommitSha,
+  mergeCommitSha,
+}: {
+  baseCommitSha: string;
+  mergeCommitSha: string;
+}): string[]  => {
+  const git = async (...args: string[]) => {
+    await exec("git", args, { cwd: repo });
+  };
+
+  try {
+    commits = await git("rev-list", baseCommitSha + ".." + mergeCommitSha);
+  } catch (error) {
+    throw error;
+  }
+
+  return commits;
+}
+
 const warnIfSquashIsNotTheOnlyAllowedMergeMethod = async ({
   github,
   owner,
@@ -92,7 +112,7 @@ const backportOnce = async ({
 }: {
   base: string;
   body: string;
-  commitToBackport: string;
+  commitsToBackport: string[];
   github: InstanceType<typeof GitHub>;
   head: string;
   labelsToAdd: string[];
@@ -106,11 +126,13 @@ const backportOnce = async ({
 
   await git("switch", base);
   await git("switch", "--create", head);
-  try {
-    await git("cherry-pick", commitToBackport);
-  } catch (error) {
-    await git("cherry-pick", "--abort");
-    throw error;
+  for (const s of commitsToBackport) {
+    try {
+      await git("cherry-pick", commitToBackport);
+    } catch (error) {
+      await git("cherry-pick", "--abort");
+      throw error;
+    }
   }
 
   await git("push", "--set-upstream", "origin", head);
@@ -185,6 +207,9 @@ const backport = async ({
       merged,
       number: pullRequestNumber,
       title: originalTitle,
+      head: {
+        base: baseCommitSha
+      }
     },
     repository: {
       name: repo,
@@ -220,8 +245,8 @@ const backport = async ({
   await warnIfSquashIsNotTheOnlyAllowedMergeMethod({ github, owner, repo });
 
   // The merge commit SHA is actually not null.
-  const commitToBackport = String(mergeCommitSha);
-  info(`Backporting ${commitToBackport} from #${pullRequestNumber}`);
+  const commitsToBackport = getCommitsToBackport({baseCommitSha, mergeCommitSha}) //String(mergeCommitSha);
+  info(`Backporting ${commitsToBackport} from #${pullRequestNumber}`);
 
   await exec("git", [
     "clone",
@@ -236,7 +261,7 @@ const backport = async ({
   await exec("git", ["config", "--global", "user.name", "github-actions[bot]"]);
 
   for (const [base, head] of Object.entries(backportBaseToHead)) {
-    const body = `Backport ${commitToBackport} from #${pullRequestNumber}`;
+    const body = `Backport ${commitsToBackport} from #${pullRequestNumber}`;
 
     let title = titleTemplate;
     Object.entries({
@@ -254,7 +279,7 @@ const backport = async ({
         await backportOnce({
           base,
           body,
-          commitToBackport,
+          commitsToBackport,
           github,
           head,
           labelsToAdd,
@@ -268,7 +293,7 @@ const backport = async ({
         await github.issues.createComment({
           body: getFailedBackportCommentBody({
             base,
-            commitToBackport,
+            commitsToBackport,
             errorMessage,
             head,
           }),
