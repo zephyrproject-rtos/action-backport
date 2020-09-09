@@ -263,7 +263,8 @@ const backport = async ({
   const baseCommitSha = pullRequest.base.sha;
 
   // The merge commit SHA is actually not null.
-  const commitsToBackport = await getCommitsToBackport({baseCommitSha, String(mergeCommitSha), repo}); //String(mergeCommitSha);
+  mergeCommitSha = String(mergeCommitSha);
+  const commitsToBackport = await getCommitsToBackport({baseCommitSha, mergeCommitSha, repo}); //String(mergeCommitSha);
   info(`Backporting ${commitsToBackport} from #${pullRequestNumber}`);
 
   await exec("git", [
