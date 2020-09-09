@@ -65,9 +65,10 @@ const getCommitsToBackport = async ({
   repo: string;
 }): Promise<string[]>  => {
 
+  const commits = [];
   try {
-    const commits = [];
  
+    const myError = '';
     const ls = {
       stdout: (data: Buffer) => {
         commits.push(data.toString());
@@ -78,7 +79,7 @@ const getCommitsToBackport = async ({
     };
 
     const options = {cwd: repo, listeners: ls};
-    exec("git", "rev-list", baseCommitSha + ".." + mergeCommitSha, options);
+    exec("git", ["rev-list", baseCommitSha + ".." + mergeCommitSha], options);
   } catch (error) {
     throw error;
   }
@@ -139,7 +140,7 @@ const backportOnce = async ({
   await git("switch", "--create", head);
   for (const s of commitsToBackport) {
     try {
-      await git("cherry-pick", commitToBackport);
+      await git("cherry-pick", s);
     } catch (error) {
       await git("cherry-pick", "--abort");
       throw error;
