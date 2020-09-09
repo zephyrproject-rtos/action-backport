@@ -222,7 +222,7 @@ const backport = async ({
       number: pullRequestNumber,
       title: originalTitle,
       head: {
-        base: baseCommitSha
+        base: baseCommitSha,
       }
     },
     repository: {
