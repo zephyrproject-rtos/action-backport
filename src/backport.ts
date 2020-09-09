@@ -67,7 +67,7 @@ const warnIfMergeCommitIsAllowedMergeMethod = async ({
     warning(
       [
         "Your repository allows merge commits.",
-        " However, Backport only supports rebased and merged pull requests with a single commit and squashed and merged pull requests.",
+        " However, Backport only supports rebased and merged pull requests and squashed and merged pull requests.",
         " Consider only allowing rebase and squash merging.",
         " See https://help.github.com/en/github/administering-a-repository/about-merge-methods-on-github for more information.",
       ].join("\n"),
@@ -103,6 +103,7 @@ const backportOnce = async ({
   await git("switch", base);
   await git("switch", "--create", head);
   try {
+    info(`Cherry-picking range: ${commitSha}`);
     await git("cherry-pick", "-x", commitSha);
   } catch (error: unknown) {
     await git("cherry-pick", "--abort");
@@ -163,8 +164,8 @@ const getFailedBackportCommentBody = ({
     `cd ${worktreePath}`,
     "# Create a new branch",
     `git switch --create ${head}`,
-    "# Cherry-pick the merged commit of this pull request and resolve the conflicts",
-    `git cherry-pick -x --mainline 1 ${commitSha}`,
+    "# Cherry-pick the merged commits of this pull request and resolve the conflicts",
+    `git cherry-pick -x ${commitSha}`,
     "# Push it to GitHub",
     `git push --set-upstream origin ${head}`,
     "# Go back to the original working tree",
@@ -220,6 +221,7 @@ const backport = async ({
     pull_request: {
       body: originalBody,
       labels: originalLabels,
+      commits: commitCount,
       merge_commit_sha: mergeCommitSha,
       merged,
       number,
@@ -249,7 +251,12 @@ const backport = async ({
 
   await warnIfMergeCommitIsAllowedMergeMethod({ github, owner, repo });
 
-  info(`Backporting ${mergeCommitSha} from #${number}.`);
+  const _commit = String(mergeCommitSha);
+  const commitToBackport =
+    commitCount === 1
+      ? _commit
+      : _commit + "~" + String(commitCount) + ".." + _commit;
+  info(`Backporting ${commitToBackport} from #${number}.`);
 
   const cloneUrl = new URL(payload.repository.clone_url);
   cloneUrl.username = "x-access-token";
@@ -270,7 +277,7 @@ const backport = async ({
     const body = getBody({
       base,
       body: originalBody ?? "",
-      mergeCommitSha,
+      mergeCommitSha: commitToBackport,
       number,
     });
     const head = getHead({ base, number });
@@ -307,7 +314,7 @@ const backport = async ({
           {
             body: getFailedBackportCommentBody({
               base,
-              commitSha: mergeCommitSha,
+              commitSha: commitToBackport,
               errorMessage: error.message,
               head,
             }),
