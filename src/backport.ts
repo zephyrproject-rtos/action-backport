@@ -221,9 +221,6 @@ const backport = async ({
       merged,
       number: pullRequestNumber,
       title: originalTitle,
-      head: {
-        base: baseCommitSha,
-      }
     },
     repository: {
       name: repo,
@@ -256,7 +253,14 @@ const backport = async ({
 
   const github = getOctokit(token);
 
-  await warnIfSquashIsNotTheOnlyAllowedMergeMethod({ github, owner, repo });
+  //await warnIfSquashIsNotTheOnlyAllowedMergeMethod({ github, owner, repo });
+  const { data: pullRequest } = await github.pulls.get({
+    owner: owner,
+    repo: repo,
+    pull_number: pullRequestNumber
+  });
+
+  const baseCommitSha = pullRequest.base.sha;
 
   // The merge commit SHA is actually not null.
   const commitsToBackport = await getCommitsToBackport({baseCommitSha, mergeCommitSha, repo}) //String(mergeCommitSha);
