@@ -12,6 +12,12 @@ inputs:
     description: Template for the title of the backport PR.
     required: false
     default: "[Backport {{base}}] {{originalTitle}}"
+  issue_labels:
+    description: Comma separated list of labels to add to the issue that will be
+      created if the backport fails. If empty then no issue will be
+      created.
+    required: false
+
 runs:
   using: node12
   main: dist/index.js
