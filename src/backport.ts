@@ -200,6 +200,7 @@ const backport = async ({
   getHead,
   getLabels,
   getTitle,
+  issueLabels,
   labelRegExp,
   payload,
   token,
@@ -231,6 +232,7 @@ const backport = async ({
       title: string;
     }>,
   ) => string;
+  issueLabels: string[];
   labelRegExp: RegExp;
   payload: PullRequestClosedEvent | PullRequestLabeledEvent;
   token: string;
@@ -244,6 +246,7 @@ const backport = async ({
       merged,
       number,
       title: originalTitle,
+      user: { login: author },
     },
     repository: {
       name: repo,
@@ -327,20 +330,39 @@ const backport = async ({
         const error = ensureError(_error);
         logError(error);
 
-        await github.request(
-          "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
-          {
-            body: getFailedBackportCommentBody({
-              base,
-              commitSha: commitToBackport,
-              errorMessage: error.message,
-              head,
-            }),
-            issue_number: number,
+        if (issueLabels.length > 0) {
+          await github.rest.issues.create({
+            assignees: [author],
+            body:
+              `This issue was created automatically because the backport of ` +
+              `#${String(number)} to \`${base}\` failed.\n\n` +
+              getFailedBackportCommentBody({
+                base,
+                commitSha: commitToBackport,
+                errorMessage: error.message,
+                head,
+              }),
+            labels: issueLabels,
             owner,
             repo,
-          },
-        );
+            title: `[Backport ${base}] Failed to backport #${String(number)}`,
+          });
+        } else {
+          await github.request(
+            "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
+            {
+              body: getFailedBackportCommentBody({
+                base,
+                commitSha: commitToBackport,
+                errorMessage: error.message,
+                head,
+              }),
+              issue_number: number,
+              owner,
+              repo,
+            },
+          );
+        }
       }
     });
   }

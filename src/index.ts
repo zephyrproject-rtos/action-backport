@@ -14,6 +14,18 @@ const run = async () => {
       "title_template",
     ].map((name) => template(getInput(name)));
 
+    const getIssueLabelsToAdd = (input: string | undefined): string[] => {
+      if (input === undefined || input === "") {
+        return [];
+      }
+
+      const labels = input.split(",");
+      return labels.map((v) => v.trim()).filter((v) => v !== "");
+    };
+
+    const _issueLabels = getInput("issue_labels");
+    const issueLabels = getIssueLabelsToAdd(_issueLabels);
+
     const getLabels = ({
       base,
       labels,
@@ -51,6 +63,7 @@ const run = async () => {
       getHead,
       getLabels,
       getTitle,
+      issueLabels,
       labelRegExp,
       payload,
       token,

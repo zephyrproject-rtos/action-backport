@@ -24,6 +24,10 @@ inputs:
         - base: backport PR's base branch
         - number: original PR's number
     default: "backport-<%= number %>-to-<%= base %>"
+  issue_labels:
+    description: Comma separated list of labels to add to the issue that will
+      be created if the backport fails. If empty then no issue will be created.
+    required: false
   label_pattern:
     description: >
       The regular expression pattern that PR labels will be tested on to decide whether the PR should be backported and where.
