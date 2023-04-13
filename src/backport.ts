@@ -176,7 +176,6 @@ const getFailedBackportCommentBody = ({
 };
 
 const backport = async ({
-  issueLabels,
   labelsToAdd,
   payload: {
     action,
@@ -188,7 +187,6 @@ const backport = async ({
       merged,
       number: pullRequestNumber,
       title: originalTitle,
-      user: { login: author },
     },
     repository: {
       name: repo,
@@ -198,7 +196,6 @@ const backport = async ({
   titleTemplate,
   token,
 }: {
-  issueLabels: string[];
   labelsToAdd: string[];
   payload: EventPayloads.WebhookPayloadPullRequest;
   titleTemplate: string;
@@ -279,38 +276,17 @@ const backport = async ({
         }
 
         logError(error);
-        if (issueLabels.length > 0) {
-          await github.issues.create({
-            assignees: [author],
-            body:
-              `This issue was created automatically because the backport of ` +
-              `#${String(pullRequestNumber)} to \`${base}\` failed.\n\n` +
-              getFailedBackportCommentBody({
-                base,
-                commitToBackport,
-                errorMessage: error.message,
-                head,
-              }),
-            labels: issueLabels,
-            owner,
-            repo,
-            title: `[backport ${base}] backport of #${String(
-              pullRequestNumber,
-            )} failed`,
-          });
-        } else if (issueLabels.length === 0) {
-          await github.issues.createComment({
-            body: getFailedBackportCommentBody({
-              base,
-              commitToBackport,
-              errorMessage: error.message,
-              head,
-            }),
-            issue_number: pullRequestNumber,
-            owner,
-            repo,
-          });
-        }
+        await github.issues.createComment({
+          body: getFailedBackportCommentBody({
+            base,
+            commitToBackport,
+            errorMessage: error.message,
+            head,
+          }),
+          issue_number: pullRequestNumber,
+          owner,
+          repo,
+        });
       }
     });
   }
