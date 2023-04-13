@@ -71,7 +71,7 @@ const warnIfMergeCommitIsAllowedMergeMethod = async ({
     warning(
       [
         "Your repository allows merge commits.",
-        " However, Backport only supports rebased and merged pull requests and squashed and merged pull requests.",
+        " However, Backport only supports rebased and merged pull requests with a single commit and squashed and merged pull requests.",
         " Consider only allowing rebase and squash merging.",
         " See https://help.github.com/en/github/administering-a-repository/about-merge-methods-on-github for more information.",
       ].join("\n"),
@@ -107,7 +107,6 @@ const backportOnce = async ({
   await git("switch", base);
   await git("switch", "--create", head);
   try {
-    info(`Cherry-picking range: ${commitToBackport}`);
     await git("cherry-pick", "-x", commitToBackport);
   } catch (error: unknown) {
     await git("cherry-pick", "--abort");
@@ -162,8 +161,8 @@ const getFailedBackportCommentBody = ({
     `cd ${worktreePath}`,
     "# Create a new branch",
     `git switch --create ${head}`,
-    "# Cherry-pick the merged commits of this pull request and resolve the conflicts",
-    `git cherry-pick -x ${commitToBackport}`,
+    "# Cherry-pick the merged commit of this pull request and resolve the conflicts",
+    `git cherry-pick -x --mainline 1 ${commitToBackport}`,
     "# Push it to GitHub",
     `git push --set-upstream origin ${head}`,
     "# Go back to the original working tree",
@@ -181,7 +180,6 @@ const backport = async ({
     action,
     label,
     pull_request: {
-      commits: commitCount,
       labels,
       merge_commit_sha: mergeCommitSha,
       merged,
@@ -222,11 +220,7 @@ const backport = async ({
   await warnIfMergeCommitIsAllowedMergeMethod({ github, owner, repo });
 
   // The merge commit SHA is actually not null.
-  const _commit = String(mergeCommitSha);
-  const commitToBackport =
-    commitCount === 1
-      ? _commit
-      : _commit + "~" + String(commitCount) + ".." + _commit;
+  const commitToBackport = String(mergeCommitSha);
   info(`Backporting ${commitToBackport} from #${pullRequestNumber}`);
 
   await exec("git", [
