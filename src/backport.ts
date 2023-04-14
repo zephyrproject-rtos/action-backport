@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { group, info, error as logError, warning } from "@actions/core";
 import { exec } from "@actions/exec";
 import { getOctokit } from "@actions/github";
@@ -97,7 +98,24 @@ const backportOnce = async ({
   title: string;
 }>): Promise<number> => {
   const git = async (...args: string[]) => {
-    await exec("git", args, { cwd: repo });
+    let output = "";
+    const options = {
+      cwd: repo,
+      listeners: {
+        stderr(data: Buffer) {
+          output += data.toString();
+        },
+        stdout(data: Buffer) {
+          output += data.toString();
+        },
+      },
+    };
+
+    try {
+      await exec("git", args, options);
+    } catch {
+      throw new Error(output.trim());
+    }
   };
 
   await git("switch", base);
