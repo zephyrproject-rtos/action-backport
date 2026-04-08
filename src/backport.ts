@@ -295,12 +295,17 @@ const backport = async ({
   const createdPullRequestBaseBranchToNumber: { [base: string]: number } = {};
 
   for (const base of baseBranches) {
-    const body = getBody({
+    const templatedBody = getBody({
       base,
       body: originalBody ?? "",
       mergeCommitSha: commitToBackport,
       number,
     });
+    const body = originalBody
+      ? `${templatedBody}\n\n---\n\n### Original PR body (#${String(
+          number,
+        )})\n\n${originalBody}`
+      : templatedBody;
     const head = getHead({ base, number });
     const labels = getLabels({
       base,
