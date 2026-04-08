@@ -331,8 +331,7 @@ const backport = async ({
         logError(error);
 
         if (issueLabels.length > 0) {
-          await github.rest.issues.create({
-            assignees: [author],
+          const issuePayload = {
             body:
               `This issue was created automatically because the backport of ` +
               `#${String(number)} to \`${base}\` failed.\n\n` +
@@ -346,7 +345,19 @@ const backport = async ({
             owner,
             repo,
             title: `[Backport ${base}] Failed to backport #${String(number)}`,
-          });
+          };
+
+          try {
+            await github.rest.issues.create({
+              ...issuePayload,
+              assignees: [author],
+            });
+          } catch {
+            warning(
+              `Could not assign issue to ${author}; creating unassigned issue instead.`,
+            );
+            await github.rest.issues.create(issuePayload);
+          }
         } else {
           await github.request(
             "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
