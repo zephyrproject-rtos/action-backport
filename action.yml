@@ -54,7 +54,7 @@ outputs:
   created_pull_requests:
     description: A JSON stringified object mapping the base branch of the created pull requests to their number.
 runs:
-  using: node16
+  using: node24
   main: dist/index.js
 branding:
   icon: arrow-left-circle
